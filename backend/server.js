@@ -8,12 +8,16 @@ import startCleanupJob from './utils/cleanup.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
+// CORS configuration - flexible for dev, strict for production
+const corsOrigin = NODE_ENV === 'development' 
+    ? /^http:\/\/localhost:\d+$/ // Allow any localhost port in dev
+    : process.env.FRONTEND_URL || 'http://localhost:5173'; // Strict in production
 
 // Middleware
 app.use(cors({
-    origin: [
-        process.env.FRONTEND_URL || 'http://localhost:5173'
-    ],
+    origin: corsOrigin,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
