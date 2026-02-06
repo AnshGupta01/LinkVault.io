@@ -22,7 +22,6 @@ export default function ViewPage() {
     const lastShareIdRef = useRef(null);
 
     useEffect(() => {
-        // React StrictMode runs effects twice in dev; guard to avoid double-fetch.
         if (lastShareIdRef.current === shareId) return;
         lastShareIdRef.current = shareId;
         fetchShare();
@@ -74,8 +73,6 @@ export default function ViewPage() {
             : `${API_URL}/download/${shareId}`;
 
         window.location.href = downloadUrl;
-
-        // Reset loading state after a delay (file download is initiated)
         setTimeout(() => setDownloadLoading(false), 1000);
     };
 

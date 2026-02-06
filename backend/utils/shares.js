@@ -8,7 +8,6 @@ import { InputFile } from 'node-appwrite/file';
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE) || 50 * 1024 * 1024 } });
 
-// POST /api/upload
 router.post('/upload', upload.single('file'), async (req, res) => {
     try {
         const { text, expiryDate, password, oneTimeView, maxViews } = req.body;
@@ -16,14 +15,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
         if (!text && !file) return res.status(400).json({ error: 'Either text or file required' });
         if (text && file) return res.status(400).json({ error: 'Only one of text or file' });
-
-        // Validate text content
         if (text && !text.trim()) return res.status(400).json({ error: 'Text cannot be empty' });
-
-        // Validate password
         if (password && password.trim().length < 3) return res.status(400).json({ error: 'Password must be at least 3 characters' });
-
-        // Validate maxViews
         if (maxViews) {
             const views = parseInt(maxViews);
             if (isNaN(views) || views < 1) return res.status(400).json({ error: 'maxViews must be a positive number' });
@@ -32,7 +25,6 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         const now = new Date();
         const expiresAt = expiryDate ? new Date(expiryDate) : new Date(now.getTime() + 10 * 60 * 1000);
 
-        // Validate expiry date is in the future
         if (expiryDate && expiresAt <= now) {
             return res.status(400).json({ error: 'Expiry date must be in the future' });
         }
@@ -95,7 +87,6 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     }
 });
 
-// GET /api/share/:shareId
 router.get('/share/:shareId', async (req, res) => {
     try {
         const { shareId } = req.params;
@@ -136,12 +127,10 @@ router.get('/share/:shareId', async (req, res) => {
             if (!valid) return res.status(401).json({ error: 'Wrong password' });
         }
 
-        // For file shares, count views on download to avoid deleting before download.
         let newViewCount = document.currentViews;
         if (document.contentType === 'text') {
             newViewCount = document.currentViews + 1;
 
-            // Increment views (update row)
             await tablesDB.updateRow({
                 databaseId: DATABASE_ID,
                 tableId: TABLE_ID,
@@ -149,7 +138,6 @@ router.get('/share/:shareId', async (req, res) => {
                 data: { currentViews: newViewCount }
             });
 
-            // Check one-time/max views using the NEW count
             if (document.oneTimeView || (document.maxViews && newViewCount >= document.maxViews)) {
                 await tablesDB.deleteRow({
                     databaseId: DATABASE_ID,
@@ -176,7 +164,6 @@ router.get('/share/:shareId', async (req, res) => {
         if (document.contentType === 'text') {
             response.textContent = document.textContent;
         } else {
-            // Parse stored JSON fileMetadata
             const fileMetadata = JSON.parse(document.fileMetadata);
             response.fileMetadata = {
                 originalName: fileMetadata.originalName,
@@ -195,7 +182,6 @@ router.get('/share/:shareId', async (req, res) => {
     }
 });
 
-// GET /download/:shareId
 router.get('/download/:shareId', async (req, res) => {
     try {
         const { shareId } = req.params;
@@ -240,7 +226,6 @@ router.get('/download/:shareId', async (req, res) => {
             return res.status(400).json({ error: 'Not a file share' });
         }
 
-        // Increment views on download for file shares
         const newViewCount = document.currentViews + 1;
         await tablesDB.updateRow({
             databaseId: DATABASE_ID,
@@ -249,11 +234,9 @@ router.get('/download/:shareId', async (req, res) => {
             data: { currentViews: newViewCount }
         });
 
-        // Use stored download URL from TablesDB
         const fileMetadata = JSON.parse(document.fileMetadata);
         const downloadUrl = fileMetadata.downloadUrl;
 
-        // If one-time or max views reached, delete after redirect to allow download
         if (document.oneTimeView || (document.maxViews && newViewCount >= document.maxViews)) {
             setTimeout(async () => {
                 try {

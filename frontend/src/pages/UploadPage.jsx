@@ -97,9 +97,6 @@ export default function UploadPage() {
                 formData.append('maxViews', maxViews);
             }
 
-            console.log('Uploading to:', `${API_URL}/upload`);
-            console.log('API_URL:', API_URL);
-
             const response = await axios.post(`${API_URL}/upload`, formData);
 
             navigate(`/success/${response.data.shareId}`, {
@@ -109,8 +106,6 @@ export default function UploadPage() {
                 },
             });
         } catch (err) {
-            console.error('Upload error:', err);
-            console.error('Error response:', err.response);
             setError(err.response?.data?.error || err.message || 'Upload failed. Please try again.');
         } finally {
             setLoading(false);
@@ -131,7 +126,6 @@ export default function UploadPage() {
 
                 <form onSubmit={handleSubmit}>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Left Column - Main Upload */}
                         <Card className="shadow-lg">
                             <CardHeader>
                                 <CardTitle>Create a Share</CardTitle>
@@ -140,7 +134,6 @@ export default function UploadPage() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                {/* Upload Type Selection */}
                                 <div className="flex gap-4">
                                     <Button
                                         type="button"
@@ -162,7 +155,6 @@ export default function UploadPage() {
                                     </Button>
                                 </div>
 
-                                {/* Content Input */}
                                 {uploadType === 'text' ? (
                                     <div className="space-y-2">
                                         <Label htmlFor="text">Your Text</Label>
@@ -225,7 +217,6 @@ export default function UploadPage() {
                             </CardContent>
                         </Card>
 
-                        {/* Right Column - Optional Settings */}
                         <div className="space-y-6">
                             <Card className="shadow-lg">
                                 <CardHeader>
