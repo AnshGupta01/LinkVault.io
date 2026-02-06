@@ -126,3 +126,4 @@ dist
 
 # Custom - uploads directory for LinkVault
 uploads/
+.DS_Store
