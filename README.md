@@ -12,7 +12,11 @@ A modern, secure file and text sharing platform with expiring links. Built with 
   <a href="#features">Features</a> • 
   <a href="#tech-stack">Tech Stack</a> • 
   <a href="#setup-instructions">Setup</a> • 
-  <a href="#api-documentation">API</a> 
+  <a href="#api-documentation">API</a> • 
+  <a href="#design-decisions">Design Decisions</a> • 
+  <a href="#assumptions-and-limitations">Assumptions and Limitations</a> • 
+  <a href="#backend-environment-variables">Environment Variables</a> •  
+  <a href="#quick-api-tests">Test API</a>
 </p>
 
 <p align="center">
@@ -127,78 +131,14 @@ This script will:
 - Appwrite account (cloud.appwrite.io or self-hosted)
 - npm or yarn package manager
 
-### Manual Setup
-
-If you prefer to run frontend and backend separately:
-
-#### Backend Setup
-
-1. Navigate to backend directory:
-
-```bash
-cd backend
-```
-
-2. Install dependencies:
-
-```bash
-npm install
-```
-
-3. Create `.env` file:
-
-```bash
-cp .env.example .env
-```
-
-4. Set up Appwrite:
+### Set up Appwrite:
    - Create a project at [cloud.appwrite.io](https://cloud.appwrite.io)
    - Create a TablesDB database and a table named "shares"
    - Create a Storage bucket for file uploads
    - Generate an API key with appropriate permissions
    - Update the `.env` file with your credentials
 
-5. Start the server:
-
-```bash
-# Development mode with auto-reload
-npm run dev
-
-# Production mode
-npm start
-```
-
-Server will run on `http://localhost:5001`
-
-### Frontend Setup
-
-1. Navigate to frontend directory:
-
-```bash
-cd frontend
-```
-
-2. Install dependencies:
-
-```bash
-npm install
-```
-
-3. Create `.env` file:
-
-```bash
-cp .env.example .env
-```
-
-4. Start the development server:
-
-```bash
-npm run dev
-```
-
-Frontend will run on `http://localhost:5173
-
-`## API Documentation
+## API Documentation
 
 ### Base URL
 
@@ -356,50 +296,36 @@ Server health check endpoint.
 - Modern build tooling
 - Component-based architecture
 - Large ecosystem
+- Paired with shadcn/ui with tailwind CSS
 
-### 6. UI Library: shadcn/ui
-
-**Reasoning:**
-
-- Copy-paste components (full control)
-- Built on Radix UI (accessibility)
-- Uses core as Tailwind
-- No runtime overhead
-- Modern, professional look
-
-### 7. API Design: RESTful
+### 6. API Design: RESTful
 
 **Reasoning:**
 
 - Standard HTTP methods and status codes
 - Easy to understand and document
-- Cache-friendly
-- Stateless
 
 ## Assumptions and Limitations
 
 ### Assumptions
 
 1. **Appwrite Account**: Requires active Appwrite account (free tier available).
-2. **Moderate Traffic**: Designed for moderate usage. High traffic may require paid Appwrite plan.
-3. **Trusted Network**: CORS configured for localhost. Production requires proper CORS configuration.
-4. **File Size**: 50MB limit balances usability and server resources.
-5. **Expiry**: Default 10-minute expiry assumes typical use case of temporary sharing.
+2. **Trusted Network**: CORS configured for localhost. Production requires proper CORS configuration.
+3. **File Size**: 50MB limit balances usability and server resources.
+4. **Expiry**: Default 10-minute expiry assumes typical use case of temporary sharing.
 
 ### Limitations
 
 1. **No User Accounts**: Anonymous sharing only (by design for MVP).
 2. **No File Scanning**: No antivirus/malware scanning on uploaded files.
 3. **No Edit Capability**: Shares are immutable after creation.
-4. **Memory Limits**: Large file uploads can strain server memory during processing.
-5. **No Compression**: Files stored as-is without compression.
-6. **No Preview**: No in-browser preview for files (download only).
+4. **No Compression**: Files stored as-is without compression.
 
 ## Database Schema
 
 View in `DB_Schema.md`
 
-### Additional Backend Design Notes
+## Additional Backend Design Notes
 
 - **Password hashing**: bcrypt (10 salt rounds), never stored in plain text.
 - **View counting**: incremented after validation; auto-deletes at `maxViews` or when `oneTimeView` is true.
