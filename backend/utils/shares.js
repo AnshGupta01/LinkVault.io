@@ -6,6 +6,22 @@ import { tablesDB, storage, DATABASE_ID, TABLE_ID, BUCKET_ID, APPWRITE_ENDPOINT,
 import { InputFile } from 'node-appwrite/file';
 
 const router = express.Router();
+
+// Blacklist of dangerous file types
+const BLOCKED_MIME_TYPES = [
+    'application/x-msdownload',
+    'application/x-msdos-program',
+    'application/x-executable',
+    'application/x-elf',
+    'application/x-sh',
+    'application/x-shellscript',
+    'application/x-bat',
+    'text/x-shellscript',
+    'application/x-perl',
+    'application/x-python'
+];
+
+const BLOCKED_EXTENSIONS = ['.exe', '.bat', '.cmd', '.com', '.scr', '.vbs', '.cpl', '.msi', '.sh', '.bash', '.zsh', '.fish'];
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE) || 50 * 1024 * 1024 } });
 
 router.post('/upload', upload.single('file'), async (req, res) => {
@@ -20,6 +36,14 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         if (maxViews) {
             const views = parseInt(maxViews);
             if (isNaN(views) || views < 1) return res.status(400).json({ error: 'maxViews must be a positive number' });
+        }
+
+        // File type validation
+        if (file) {
+            const fileExt = file.originalname.substring(file.originalname.lastIndexOf('.')).toLowerCase();
+            if (BLOCKED_EXTENSIONS.includes(fileExt) || BLOCKED_MIME_TYPES.includes(file.mimetype)) {
+                return res.status(400).json({ error: `File type '${fileExt}' is not allowed for security reasons` });
+            }
         }
 
         const now = new Date();
@@ -115,7 +139,7 @@ router.get('/share/:shareId', async (req, res) => {
             });
             if (document.fileMetadata) {
                 const fileMetadata = JSON.parse(document.fileMetadata);
-                await storage.deleteFile(BUCKET_ID, fileMetadata.fileId);
+                await storage.deleteFile({ bucketId: BUCKET_ID, fileId: fileMetadata.fileId });
             }
             return res.status(410).json({ error: 'Share expired' });
         }
@@ -146,7 +170,7 @@ router.get('/share/:shareId', async (req, res) => {
                 });
                 if (document.fileMetadata) {
                     const fileMetadata = JSON.parse(document.fileMetadata);
-                    await storage.deleteFile(BUCKET_ID, fileMetadata.fileId);
+                    await storage.deleteFile({ bucketId: BUCKET_ID, fileId: fileMetadata.fileId });
                 }
             }
         }
@@ -158,7 +182,8 @@ router.get('/share/:shareId', async (req, res) => {
             createdAt: document.$createdAt,
             oneTimeView: document.oneTimeView,
             maxViews: document.maxViews,
-            currentViews: newViewCount
+            currentViews: newViewCount,
+            passwordProtected: !!document.password
         };
 
         if (document.contentType === 'text') {
@@ -257,6 +282,61 @@ router.get('/download/:shareId', async (req, res) => {
     } catch (error) {
         console.error('Download error:', error);
         res.status(500).json({ error: 'Download failed' });
+    }
+});
+
+router.delete('/share/:shareId', async (req, res) => {
+    try {
+        const { shareId } = req.params;
+        const { password } = req.query;
+
+        let document;
+        try {
+            document = await tablesDB.getRow({
+                databaseId: DATABASE_ID,
+                tableId: TABLE_ID,
+                rowId: shareId
+            });
+        } catch (error) {
+            if (error.code === 404) {
+                return res.status(404).json({ error: 'Share not found' });
+            }
+            throw error;
+        }
+
+        // Check password if required
+        if (document.password) {
+            if (!password) return res.status(401).json({ error: 'Password required' });
+            const valid = await bcrypt.compare(password, document.password);
+            if (!valid) return res.status(401).json({ error: 'Wrong password' });
+        }
+
+        // Delete from database
+        await tablesDB.deleteRow({
+            databaseId: DATABASE_ID,
+            tableId: TABLE_ID,
+            rowId: document.$id
+        });
+
+        // Delete file if it exists
+        if (document.fileMetadata) {
+            try {
+                const fileMetadata = JSON.parse(document.fileMetadata);
+                await storage.deleteFile({ bucketId: BUCKET_ID, fileId: fileMetadata.fileId });
+            } catch (e) {
+                console.log('File already deleted:', e.message);
+            }
+        }
+
+        res.json({
+            success: true,
+            message: 'Share deleted successfully',
+            shareId: document.$id
+        });
+
+    } catch (error) {
+        console.error('Delete error:', error);
+        res.status(500).json({ error: 'Failed to delete share' });
     }
 });
 

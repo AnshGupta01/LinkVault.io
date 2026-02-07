@@ -9,6 +9,10 @@ import { DateTimePicker } from '@/components/ui/date-time-picker';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+// Blocked file types for security
+const BLOCKED_EXTENSIONS = ['.exe', '.bat', '.cmd', '.com', '.scr', '.vbs', '.cpl', '.msi', '.sh', '.bash', '.zsh', '.fish'];
+const BLOCKED_MIME_TYPES = ['application/x-msdownload', 'application/x-msdos-program', 'application/x-executable', 'application/x-sh', 'application/x-shellscript', 'application/x-bat'];
+
 export default function UploadPage() {
     const navigate = useNavigate();
     const [uploadType, setUploadType] = useState('text');
@@ -25,10 +29,20 @@ export default function UploadPage() {
     const handleFileSelect = (e) => {
         const file = e.target.files[0];
         if (file) {
+            // Check file size
             if (file.size > 50 * 1024 * 1024) {
                 setError('File size must be less than 50MB');
                 return;
             }
+
+            // Check file type
+            const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            if (BLOCKED_EXTENSIONS.includes(fileExt) || BLOCKED_MIME_TYPES.includes(file.type)) {
+                setError(`File type '${fileExt}' is not allowed for security reasons. Blocked types: ${BLOCKED_EXTENSIONS.join(', ')}`);
+                setSelectedFile(null);
+                return;
+            }
+
             setSelectedFile(file);
             setError('');
         }
@@ -51,10 +65,20 @@ export default function UploadPage() {
 
         const file = e.dataTransfer.files[0];
         if (file) {
+            // Check file size
             if (file.size > 50 * 1024 * 1024) {
                 setError('File size must be less than 50MB');
                 return;
             }
+
+            // Check file type
+            const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            if (BLOCKED_EXTENSIONS.includes(fileExt) || BLOCKED_MIME_TYPES.includes(file.type)) {
+                setError(`File type '${fileExt}' is not allowed for security reasons. Blocked types: ${BLOCKED_EXTENSIONS.join(', ')}`);
+                setSelectedFile(null);
+                return;
+            }
+
             setSelectedFile(file);
             setError('');
         }

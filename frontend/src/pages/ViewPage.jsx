@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { formatDistanceToNow } from 'date-fns';
-import { Copy, Download, Lock, Eye, Clock, CheckCircle2, XCircle, FileText, File as FileIcon } from 'lucide-react';
+import { Copy, Download, Lock, Eye, Clock, CheckCircle2, XCircle, FileText, File as FileIcon, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
@@ -19,6 +19,9 @@ export default function ViewPage() {
     const [passwordRequired, setPasswordRequired] = useState(false);
     const [copied, setCopied] = useState(false);
     const [downloadLoading, setDownloadLoading] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
+    const [deletePassword, setDeletePassword] = useState('');
+    const [showDeletePrompt, setShowDeletePrompt] = useState(false);
     const lastShareIdRef = useRef(null);
 
     useEffect(() => {
@@ -74,6 +77,53 @@ export default function ViewPage() {
 
         window.location.href = downloadUrl;
         setTimeout(() => setDownloadLoading(false), 1000);
+    };
+
+    const handleDelete = async (passwordForDelete = null) => {
+        // Check if share is password-protected (either from flag or if user entered password to view it)
+        const isPasswordProtected = share?.passwordProtected || !!password;
+
+        // If share is password-protected and no password provided, use viewing password or show prompt
+        if (isPasswordProtected && !passwordForDelete) {
+            // If they already entered the password to view, use that for deletion
+            if (password) {
+                passwordForDelete = password;
+            } else {
+                // Otherwise, show the password prompt
+                setShowDeletePrompt(true);
+                return;
+            }
+        }
+
+        // Only show confirmation if we have password (or don't need one)
+        if (!window.confirm('Are you sure you want to delete this share? This action cannot be undone.')) {
+            setShowDeletePrompt(false);
+            return;
+        }
+
+        setDeleteLoading(true);
+        try {
+            const deleteUrl = passwordForDelete
+                ? `${API_URL}/share/${shareId}?password=${encodeURIComponent(passwordForDelete)}`
+                : `${API_URL}/share/${shareId}`;
+
+            await axios.delete(deleteUrl);
+            setShowDeletePrompt(false);
+            setDeletePassword('');
+            setError('Share deleted successfully');
+            setTimeout(() => navigate('/'), 2000);
+        } catch (err) {
+            if (err.response?.status === 401) {
+                setError('Wrong password. Please try again.');
+                setDeletePassword('');
+                // Keep the prompt open for retry
+            } else {
+                setError(err.response?.data?.error || 'Failed to delete share');
+                setShowDeletePrompt(false);
+            }
+        } finally {
+            setDeleteLoading(false);
+        }
     };
 
     if (loading) {
@@ -265,7 +315,48 @@ export default function ViewPage() {
                     </CardContent>
                 </Card>
 
-                <div className="text-center">
+                {showDeletePrompt && (
+                    <Card className="border-red-800">
+                        <CardHeader>
+                            <CardTitle className="text-red-400">Password Required to Delete</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="deletePassword">Enter Password</Label>
+                                <Input
+                                    id="deletePassword"
+                                    type="password"
+                                    value={deletePassword}
+                                    onChange={(e) => setDeletePassword(e.target.value)}
+                                    placeholder="Enter password to confirm deletion"
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                <Button
+                                    onClick={() => handleDelete(deletePassword)}
+                                    className="w-full bg-red-600 hover:bg-red-700"
+                                    disabled={deleteLoading || !deletePassword.trim()}
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    {deleteLoading ? 'Deleting...' : 'Confirm Delete'}
+                                </Button>
+                                <Button
+                                    onClick={() => { setShowDeletePrompt(false); setDeletePassword(''); }}
+                                    variant="outline"
+                                >
+                                    Cancel
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                <div className="flex gap-2 justify-center">
+                    <Button onClick={() => handleDelete()} variant="destructive" disabled={deleteLoading}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {deleteLoading ? 'Deleting...' : 'Delete Share'}
+                    </Button>
                     <Button onClick={() => navigate('/')} variant="ghost">
                         Create Your Own Share
                     </Button>

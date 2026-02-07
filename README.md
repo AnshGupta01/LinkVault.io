@@ -48,6 +48,8 @@ A modern, secure file and text sharing platform with expiring links. Built with 
 - **Password Protection**: Secure links with optional passwords
 - **One-Time View**: Links that self-destruct after first access
 - **View Limits**: Set maximum number of views per share
+- **Manual Delete**: Delete shares anytime
+- **File Type Validation**: Blocks dangerous file types (executables, scripts) for security
 - **Background Cleanup**: Automated job for expired content removal
 - **Responsive Design**: Works seamlessly on all devices
 
@@ -166,6 +168,8 @@ Creates a new share with text or file content.
 | oneTimeView | boolean | optional | Self-destruct after first view |
 | maxViews | number | optional | Maximum view count |
 
+**Blocked File Types:** `.exe`, `.bat`, `.cmd`, `.com`, `.scr`, `.vbs`, `.cpl`, `.msi`, `.sh`, `.bash`, `.zsh`, `.fish` (and corresponding MIME types)
+
 **Response:** `201 Created`
 
 ```json
@@ -238,7 +242,34 @@ Downloads file content.
 - `400 Bad Request`: Share doesn't contain a file
 - `401 Unauthorized`: Password required or incorrect
 
-#### 4. Health Check
+#### 4. Delete Share
+
+**DELETE** `/share/:shareId`
+
+Deletes a share and its associated content.
+
+**Query Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| password | string | conditional | Required if share is password-protected |
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Share deleted successfully",
+  "shareId": "kA8x9pQ2mL"
+}
+```
+
+**Error Responses:**
+
+- `404 Not Found`: Share doesn't exist
+- `401 Unauthorized`: Password required or incorrect
+- `500 Server Error`: Deletion failed
+
+#### 5. Health Check
 
 **GET** `/health`
 
