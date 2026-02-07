@@ -49,24 +49,46 @@ echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop both servers${NC}"
 echo ""
 
-cd "$SCRIPT_DIR/backend"
-echo -e "${GREEN}▶ Starting Backend...${NC}"
-npm run dev &
-BACKEND_PID=$!
+if command -v tmux &>/dev/null; then
+    echo -e "${GREEN}✓ tmux found — launching side-by-side panes${NC}"
+    SESSION="linkvault"
+    if tmux has-session -t "$SESSION" 2>/dev/null; then
+        tmux kill-session -t "$SESSION"
+    fi
+    tmux new-session -d -s "$SESSION" -c "$SCRIPT_DIR/backend" "npm run dev"
+    tmux split-window -h -t "$SESSION" -c "$SCRIPT_DIR/frontend" "npm run dev"
+    tmux select-pane -t 0
 
-sleep 2
-cd "$SCRIPT_DIR/frontend"
-echo -e "${GREEN}▶ Starting Frontend...${NC}"
-npm run dev &
-FRONTEND_PID=$!
+    cleanup() {
+        echo -e "${YELLOW}Shutting down tmux session...${NC}"
+        tmux kill-session -t "$SESSION" 2>/dev/null || true
+        echo -e "${GREEN}✓ Servers stopped${NC}"
+        exit 0
+    }
 
-cleanup() {
-    echo -e "${YELLOW}Shutting down servers...${NC}"
-    kill $BACKEND_PID 2>/dev/null || true
-    kill $FRONTEND_PID 2>/dev/null || true
-    echo -e "${GREEN}✓ Servers stopped${NC}"
-    exit 0
-}
+    trap cleanup SIGINT SIGTERM
+    tmux attach -t "$SESSION"
+else
+    echo -e "${YELLOW}tmux not found — starting processes in background${NC}"
+    cd "$SCRIPT_DIR/backend"
+    echo -e "${GREEN}▶ Starting Backend...${NC}"
+    npm run dev &
+    BACKEND_PID=$!
 
-trap cleanup SIGINT SIGTERM
-wait $BACKEND_PID $FRONTEND_PID
+    sleep 2
+    cd "$SCRIPT_DIR/frontend"
+    echo -e "${GREEN}▶ Starting Frontend...${NC}"
+    npm run dev &
+    FRONTEND_PID=$!
+
+    cleanup() {
+        echo -e "${YELLOW}Shutting down servers...${NC}"
+        kill $BACKEND_PID 2>/dev/null || true
+        kill $FRONTEND_PID 2>/dev/null || true
+        echo -e "${GREEN}✓ Servers stopped${NC}"
+        exit 0
+    }
+
+    trap cleanup SIGINT SIGTERM
+    wait $BACKEND_PID $FRONTEND_PID
+fi
