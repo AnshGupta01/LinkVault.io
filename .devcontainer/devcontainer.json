@@ -1,0 +1,6 @@
+{
+  "name": "LinkVault.io",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bookworm",
+  "postStartCommand": "bash run.sh",
+  "forwardPorts": [5173, 5001]
+}

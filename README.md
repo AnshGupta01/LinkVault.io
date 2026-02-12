@@ -108,17 +108,14 @@ linkvault/
 ```
 
 ## Setup Instructions
-
-### Quick Start (Recommended)
-
-Start both frontend and backend with a single command:
-
 ```bash
-# Make the script executable
-chmod +x run.sh
+# Quick Start (Recommended)
+Setup .env.local
+Directly start the devcontainer, app will auto-build and run
 
-# Run frontend and backend together
-./run.sh
+# Manual Start
+chmod +x run.sh
+./run.sh # Run frontend and backend together
 ```
 
 This script will:
