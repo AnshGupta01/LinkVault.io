@@ -73,39 +73,6 @@ A modern, secure file and text sharing platform with expiring links. Built with 
 - **bcrypt** for password hashing
 - **node-cron** for scheduled cleanup jobs
 
-## Project Structure
-
-```
-linkvault/
-├── backend/
-│   ├── utils/
-│   │   ├── appwrite.js        # Appwrite client config
-│   │   ├── shares.js          # API routes
-│   │   └── cleanup.js         # Cleanup cron job
-│   ├── server.js              # Entry point
-│   ├── .env                   # Environment variables
-│   ├── .gitignore
-│   └── package.json
-│
-└── frontend/
-    ├── src/
-    │   ├── components/
-    │   │   └── ui/            # shadcn/ui components
-    │   ├── lib/
-    │   │   └── utils.js       # Utility functions
-    │   ├── pages/
-    │   │   ├── UploadPage.jsx    # Upload interface
-    │   │   ├── ViewPage.jsx      # Share viewing
-    │   │   └── SuccessPage.jsx   # Success screen
-    │   ├── App.jsx
-    │   ├── main.jsx
-    │   └── index.css
-    ├── .env
-    ├── .gitignore
-    ├── tailwind.config.js
-    ├── vite.config.js
-    └── package.json
-```
 
 ## Setup Instructions
 ```bash
@@ -118,19 +85,10 @@ chmod +x run.sh
 ./run.sh # Run frontend and backend together
 ```
 
-This script will:
-- Install all dependencies for frontend and backend
-- Start the backend server (http://localhost:5001)
-- Start the frontend server (http://localhost:5173)
-- Handle graceful shutdown on Ctrl+C
-
-### Prerequisites
-
-- Node.js (v18 or higher)
-- Appwrite account (cloud.appwrite.io or self-hosted)
-- npm or yarn package manager
-
-### Set up Appwrite:
+### Before running the project:
+  - Node.js (v18 or higher)
+  - Appwrite account (cloud.appwrite.io or self-hosted)
+  - npm or yarn package manager
    - Create a project at [cloud.appwrite.io](https://cloud.appwrite.io)
    - Create a TablesDB database and a table named "shares"
    - Create a Storage bucket for file uploads
@@ -285,53 +243,27 @@ Server health check endpoint.
 
 ### 1. Database Choice: Appwrite TablesDB
 
-**Reasoning:**
-
-- Flexible schema perfect for varying metadata (password, views, etc.)
-- Cloud-hosted with automatic scaling
-- No infrastructure management required
+**Reasoning:** Cloud-hosted with automatic scaling
 
 ### 2. File Storage: Appwrite Storage Bucket
 
-**Reasoning:**
-
-- Direct URL generation for downloads
-- No need to manage filesystem or S3 separately
-- Automatic file cleanup with bucket rules
+**Reasoning:** Fits right into the current stack
 
 ### 3. Password Hashing: bcrypt
 
-**Reasoning:**
-
-- Industry-standard for password hashing
-- Adaptive hashing (protection against future hardware)
-- Built-in salting
+**Reasoning:** Industry-standard for password hashing
 
 ### 4. Cleanup Strategy: Cron Job
 
 **Approach:** Node-cron scheduled job
 
-- Queries expired shares from TablesDB
-- Deletes database records
-- Deletes associated files from Appwrite Storage
-- Runs every 5 minutes
-
 ### 5. Frontend Framework: React + Vite
 
-**Reasoning:**
-
-- Rapid Development
-- Modern build tooling
-- Component-based architecture
-- Large ecosystem
-- Paired with shadcn/ui with tailwind CSS
+**Reasoning:** Component-based architecture
 
 ### 6. API Design: RESTful
 
-**Reasoning:**
-
-- Standard HTTP methods and status codes
-- Easy to understand and document
+**Reasoning:** Standard HTTP methods and status codes
 
 ## Assumptions and Limitations
 
@@ -344,7 +276,7 @@ Server health check endpoint.
 
 ### Limitations
 
-1. **No User Accounts**: Anonymous sharing only (by design for MVP).
+1. **No User Accounts**: Anonymous sharing only - Doesnt need any tbh.
 2. **No File Scanning**: No antivirus/malware scanning on uploaded files.
 3. **No Edit Capability**: Shares are immutable after creation.
 4. **No Compression**: Files stored as-is without compression.
@@ -352,14 +284,6 @@ Server health check endpoint.
 ## Database Schema
 
 View in `DB_Schema.md`
-
-## Additional Backend Design Notes
-
-- **Password hashing**: bcrypt (10 salt rounds), never stored in plain text.
-- **View counting**: incremented after validation; auto-deletes at `maxViews` or when `oneTimeView` is true.
-- **Expiry**: enforced on access plus a 5-minute cron cleanup job.
-- **File URLs**: generated at upload time and stored in TablesDB; files are publicly readable.
-- **Error handling**: consistent HTTP codes (400, 401, 403, 404, 410, 500) with safe error messages.
 
 ### Backend Environment Variables
 
